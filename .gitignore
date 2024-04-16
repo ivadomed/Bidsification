@@ -1,0 +1,7 @@
+data/
+/outputs
+*.csv
+git_commands.txt
+structure_explo.ipynb
+__pycache__/
+Data_exploration.ipynb
