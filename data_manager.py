@@ -30,11 +30,11 @@ def dataset_from_path(path):
 def clone_dataset(dataset_name, is_openneuro=False):
     '''
     Clone the dataset in the current directory
-    '''
-    print(f"Cloning the dataset {dataset_name}...")       
+    '''       
 
     if is_openneuro:
-        stream = os.popen(f"git clone https://github.com/OpenNeuroDatasets/{dataset_name}.git")
+        stream = os.popen(f"datalad clone https://github.com/OpenNeuroDatasets/{dataset_name}.git")
+        stream = os.popen(f"datalad siblings -d {os.getcwd()}/{dataset_name} enable -s s3-PRIVATE")
     else:
         stream = os.popen(f"git clone git@data.neuro.polymtl.ca:datasets/{dataset_name}.git")
 
@@ -42,23 +42,24 @@ def download_sample(img_path):
     '''
     Download the sample from the dataset with git annex
     '''
-    # check if the current directory is the "data/dataset_name" folder
-    if os.getcwd().split("/")[-1] != dataset_from_path(img_path):
-        # reinstate the root directory
-        os.chdir("../..")
-        # change directory to the correct dataset folder
-        os.chdir("data/"+dataset_from_path(img_path))
-    stream = os.popen(f"git annex get {img_path}")
+    # change directory to the correct dataset folder
+    os.chdir(dataset_from_path(img_path))
+    # remove dataset name from the image path
+    img_path = img_path.split(dataset_from_path(img_path)+"/")[1]
+    stream = os.popen(f"datalad get {img_path}")
+
+    # change directory back to the "data" folder
+    os.chdir("..")
 
 def dl_dataset(dataset_path_csv):
     # Load the dataset from the CSV file
-    dataset = pd.read_csv(dataset_path_csv)
+    dataset_paths = pd.read_csv(dataset_path_csv)
 
     # add a column to the dataset with the name of the dataset of origin
-    dataset['dataset'] = dataset['img_path'].apply(dataset_from_path)
+    dataset_paths['dataset'] = dataset_paths['img_path'].apply(dataset_from_path)
     
     #make a list of the datasets
-    datasets = dataset['dataset'].unique()
+    datasets = dataset_paths['dataset'].unique()
 
     # clone each dataset repository
     if not os.path.exists("data"):
@@ -67,13 +68,11 @@ def dl_dataset(dataset_path_csv):
     os.chdir("data")
     for dataset in datasets:
         clone_dataset(dataset, is_openneuro=dataset.startswith('ds0'))
-        break
+        i+=1
     print("Cloning done")
     
-    for img_path in dataset['img_path']:
+    for img_path in dataset_paths['img_path']:
         download_sample(img_path)
-        print(f"Downloaded {img_path}")
-        break
     
 
 
