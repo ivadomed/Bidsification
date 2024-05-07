@@ -2,6 +2,7 @@ import numpy as np
 import nibabel as nib
 import pandas as pd
 import os
+import subprocess
 from sklearn.model_selection import train_test_split
 from monai.data import Dataset, DataLoader, CacheDataset
 from monai.transforms import (
@@ -18,11 +19,14 @@ from monai.transforms import (
     RandSimulateLowResolution,
 )
 import torch
+import subprocess
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def dataset_from_path(path):
     if '\s' in path:
+        print("el famoso")
+        print(path.split('\s'))
         return(path.split('\s')[0])
     else:
         return(path.split('/')[0])
@@ -30,26 +34,26 @@ def dataset_from_path(path):
 def clone_dataset(dataset_name, is_openneuro=False):
     '''
     Clone the dataset in the current directory
-    '''       
+    '''
+    print(f"Cloning the dataset {dataset_name}...")       
 
     if is_openneuro:
-        stream = os.popen(f"datalad clone https://github.com/OpenNeuroDatasets/{dataset_name}.git")
-        stream = os.popen(f"datalad siblings -d {os.getcwd()}/{dataset_name} enable -s s3-PRIVATE")
+        subprocess.run(f"datalad clone https://github.com/OpenNeuroDatasets/{dataset_name}.git", shell=True, cwd="data/")
+        print(f'datalad siblings -d {os.getcwd()}/{dataset_name} enable -s s3-PRIVATE')
+        subprocess.run(f"datalad siblings -d {os.getcwd()}/{dataset_name} enable -s s3-PRIVATE", shell=True, cwd="data/")
     else:
-        stream = os.popen(f"git clone git@data.neuro.polymtl.ca:datasets/{dataset_name}.git")
+        subprocess.run(f"git clone git@data.neuro.polymtl.ca:datasets/{dataset_name}.git", shell=True, cwd="data/")
 
-def download_sample(img_path):
+def download_sample(img_path, dataset):
     '''
     Download the sample from the dataset with git annex
     '''
-    # change directory to the correct dataset folder
-    os.chdir(dataset_from_path(img_path))
     # remove dataset name from the image path
     img_path = img_path.split(dataset_from_path(img_path)+"/")[1]
-    stream = os.popen(f"datalad get {img_path}")
+    print(f"Downloading {img_path}...")
+    print(f"directory : {dataset}")
+    subprocess.run(f"datalad get {img_path}", shell=True, cwd=f"data/{dataset}")
 
-    # change directory back to the "data" folder
-    os.chdir("..")
 
 def dl_dataset(dataset_path_csv):
     # Load the dataset from the CSV file
@@ -63,16 +67,17 @@ def dl_dataset(dataset_path_csv):
 
     # clone each dataset repository
     if not os.path.exists("data"):
-        os.makedirs("data")
+        subprocess.run("mkdir data", shell=True)
     #change the current directory to the "data" folder
-    os.chdir("data")
     for dataset in datasets:
         clone_dataset(dataset, is_openneuro=dataset.startswith('ds0'))
-        i+=1
     print("Cloning done")
     
-    for img_path in dataset_paths['img_path']:
-        download_sample(img_path)
+    for row in dataset_paths.iterrows():
+        img_path, dataset = row[1]['img_path'], row[1]['dataset']
+        download_sample(img_path, dataset)
+        print(f"Downloaded {img_path}")
+
     
 
 
