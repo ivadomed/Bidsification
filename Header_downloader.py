@@ -81,6 +81,11 @@ headers_df = pd.DataFrame(columns=['img_path', 'contrast', 'orientation', 'shape
 #load the csv containing already processed datasets
 datasets_to_process = pd.read_csv('datasets_to_process.csv')['openneuro_dataset_id'].values
 
+# if header_data directory does not exist, create it
+if not os.path.exists('headers_data'):
+    os.makedirs('headers_data')
+    
+
 # while the length of the processed datasets is less than the length of the dataset names
 while len(datasets_to_process) > 0:
     # draw a dataset name randomly
@@ -92,7 +97,7 @@ while len(datasets_to_process) > 0:
     #save the datasets to process
     pd.DataFrame(datasets_to_process, columns=['openneuro_dataset_id']).to_csv('datasets_to_process.csv', index=False)
 
-    clone_dataset(dataset_name, is_openneuro=True)
+    clone_dataset(dataset_name)
     print(f'Processing {dataset_name} dataset')
     img_paths = fetch_all_image_paths(dataset_name)
     for img_path in img_paths:
@@ -121,10 +126,17 @@ while len(datasets_to_process) > 0:
     datasets_to_process = pd.read_csv('datasets_to_process.csv')['openneuro_dataset_id'].values
 
 # regroup all the csv files in one
-all_headers = pd.DataFrame(columns=['img_path', 'contrast', 'orientation', 'shape','is_2D', 'is_3D', 'is_4D','p'])
+all_headers = pd.read_csv('images_infos_until_biobank.csv')
+
+# Reform the list of datasets to process
+processed_datasets = pd.DataFrame(columns=['openneuro_dataset_id'])
+
 for p in Path('headers_data').rglob('*.csv'):
     all_headers = pd.concat([all_headers, pd.read_csv(p)])
+    processed_datasets.loc[len(processed_datasets)] = p.stem.split('_')[-1]
+
 all_headers.to_csv('all_headers.csv', index=False)
+processed_datasets.to_csv('processed_datasets.csv', index=False)
 
 
 
