@@ -111,16 +111,18 @@ if evaluate:
     sample_weights = selected_headers['p_draw']
 
     # in X transform shape (x,y,z) to three columns as well as p (px, py, pz)
-    X['shape_x'] = X['shape'].apply(lambda x: x.split(',')[0])
-    X['shape_y'] = X['shape'].apply(lambda x: x.split(',')[1])
-    X['shape_z'] = X['shape'].apply(lambda x: x.split(',')[2])
-    X['p_x'] = X['p'].apply(lambda x: x.split(',')[0])
-    X['p_y'] = X['p'].apply(lambda x: x.split(',')[1])
-    X['p_z'] = X['p'].apply(lambda x: x.split(',')[2])
+    X['shape_x'] = X['shape'].apply(lambda x: float(x.split(',')[0][1:]))
+    X['shape_y'] = X['shape'].apply(lambda x: float(x.split(',')[1]))
+    X['shape_z'] = X['shape'].apply(lambda x: float(x.split(',')[2][0:-1]))
+    X['p_x'] = X['p'].apply(lambda x: float(x.split(',')[0][1:]))
+    X['p_y'] = X['p'].apply(lambda x: float(x.split(',')[1]))
+    X['p_z'] = X['p'].apply(lambda x: float(x.split(',')[2][0:-1]))
     X = X.drop(columns=['shape', 'p'])
+    
+    # normalize the data, column by column
+    for column in X.columns:
+        X[column] = (X[column] - X[column].mean()) / X[column].std()
 
-    # normalize the data
-    X = (X - X.mean()) / X.std()
 
     # split the data
     X_train, X_test, Y_train, Y_test, sw_train, sw_test = train_test_split(X, Y, sample_weights, test_size=0.2)
@@ -135,8 +137,18 @@ if evaluate:
     # evaluate the model
     print("Evaluating the model...")
     Y_pred = clf.predict(X_test)
+    print(Y_pred)
     accuracy = accuracy_score(Y_test, Y_pred)
     print("Accuracy : ", accuracy)
-    print("The random classifier has an accuracy of ", 1/len(Y.unique()))
+    
+    # in order to compare, we run a random classifier as well
+    from sklearn.dummy import DummyClassifier
+    clf = DummyClassifier(strategy='uniform')
+    clf.fit(X_train, Y_train, sample_weight=sw_train)
+    Y_pred = clf.predict(X_test)
+    accuracy = accuracy_score(Y_test, Y_pred)
+    print("Accuracy of the random classifier : ", accuracy)
+
+
 
 
