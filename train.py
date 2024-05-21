@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader
-from data_manager import Dataset_2D, find_T1w_T2w_paths, dataset_splitter, paths_to_Dataset, num_of_classes
+from data_manager import Dataset_2D, find_T1w_T2w_paths, dataset_splitter, paths_to_Dataset
 from contrast_classifier_Networks import ResNet18SingleChannel
 import torch
 import torch.nn as nn
@@ -22,6 +22,8 @@ parser.add_argument('--model_path', type=str, default='none',
                     help='the path to the model, Random weights by Default')
 parser.add_argument('--model_output', type=str, default='checkpoints//model.pth',
                     help='the path to the output model, checkpoints//model.pth by Default')
+parser.add_argument('--base_dir', type=str, default='data/',
+                    help='the path to the base directory, data/ by Default')
 
 # Parse the arguments
 args = parser.parse_args()
@@ -31,6 +33,7 @@ evaluate = args.evaluate
 data_csv = args.data_csv
 model_path = args.model_path
 model_output = args.model_output
+base_dir = args.base_dir
 
 # Define the training loop
 def training_one_epoch(model):
@@ -48,28 +51,24 @@ def training_one_epoch(model):
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
-        index+=1
+        index += 1
     return model, running_loss / len(train_dataset)
 
 #### Load the data
-# Define the base directory
-base_dir = "data//data-multi-subject//"
-
-# Find the relative paths of the T1w and T2w files in the specified directory
 
 # Split the data into training and validation sets
-pd_train_data, pd_val_data = dataset_splitter(data_csv, train_ratio=0.8, random_seed=42)
+pd_train_data, pd_val_data, num_classes = dataset_splitter(data_csv, train_ratio=0.8, random_seed=42)
 
 # Create the training and validation datasets
-train_dataset = paths_to_Dataset(pd_train_data)
-val_dataset = paths_to_Dataset(pd_val_data, val=True)
+train_dataset = paths_to_Dataset(pd_train_data, num_classes=num_classes, base_dir=base_dir)
+val_dataset = paths_to_Dataset(pd_val_data, val=True, num_classes=num_classes, base_dir=base_dir)
 
 #### Train the model
 
 # Define the device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model = ResNet18SingleChannel(num_classes=num_of_classes(data_csv)).to(device)
+model = ResNet18SingleChannel(num_classes=num_classes).to(device)
 if model_path != 'none':
     model.load_state_dict(torch.load(model_path), map_location=device)
     print("Model loaded")

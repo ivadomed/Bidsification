@@ -3,3 +3,4 @@ output/
 checkpoints/
 __pycache__/
 downer.py
+*.csv
