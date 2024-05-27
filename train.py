@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader
-from data_manager import Dataset_2D, find_T1w_T2w_paths, dataset_splitter, paths_to_Dataset
+from data_manager import Dataset_2D, dataset_splitter, paths_to_Dataset
 from contrast_classifier_Networks import ResNet18SingleChannel
 import torch
 import torch.nn as nn
@@ -7,6 +7,7 @@ import torch.optim as optim
 import numpy as np
 from sklearn.metrics import f1_score
 import argparse
+import os
 
 
 ### Retrieve the arguments
@@ -16,14 +17,18 @@ parser = argparse.ArgumentParser(description='Train and evaluate the model.')
 # Add the arguments
 parser.add_argument('--evaluate', type=bool, default=True,
                     help='a boolean for the evaluation mode, True by Default')
-parser.add_argument('--data_csv', type=str, default='datasetpaths.csv',
-                    help='the path to the dataset CSV file, datasetpaths.csv by Default')
+parser.add_argument('--data_csv', type=str, default='images_paths.csv',
+                    help='the path to the dataset CSV file, images_paths.csv by Default')
 parser.add_argument('--model_path', type=str, default='none',
                     help='the path to the model, Random weights by Default')
-parser.add_argument('--model_output', type=str, default='checkpoints//model.pth',
-                    help='the path to the output model, checkpoints//model.pth by Default')
-parser.add_argument('--base_dir', type=str, default='data/',
-                    help='the path to the base directory, data/ by Default')
+parser.add_argument('--output_file', type=str, default='model.pth',
+                    help='the path to the output model, model.pth by Default')
+parser.add_argument('--output_directory', type=str, default='checkpoints',
+                    help='the path to the output directory, checkpoints by Default')
+parser.add_argument('--base_dir', type=str, default='data',
+                    help='the path to the base directory, data by Default')
+parser.add_argument('--num_epochs', type=int, default=10,
+                    help='the number of epochs, 10 by Default')
 
 # Parse the arguments
 args = parser.parse_args()
@@ -32,8 +37,10 @@ args = parser.parse_args()
 evaluate = args.evaluate
 data_csv = args.data_csv
 model_path = args.model_path
-model_output = args.model_output
-base_dir = args.base_dir
+output_file = args.output_file
+output_directory = args.output_directory + '/' 
+base_dir = args.base_dir + '/'
+num_epochs = args.num_epochs
 
 # Define the training loop
 def training_one_epoch(model):
@@ -75,17 +82,20 @@ if model_path != 'none':
 criterion = nn.BCELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Define the number of epochs
-num_epochs = 1
-
+# Train the model
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1} / {num_epochs}")
     model, train_loss = training_one_epoch(model)
     print(f"Epoch {epoch + 1} training loss: {train_loss}")
     if (epoch + 1) % 10 == 0:
-        torch.save(model.state_dict(), f"checkpoints//model_save_epoch_{epoch + 1}.pth")
+        # check if the directory exists
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
+        torch.save(model.state_dict(), output_directory + f"model_epoch_{epoch + 1}.pth")
 #save model
-torch.save(model.state_dict(), model_output)
+if not os.path.exists(output_directory):
+    os.makedirs(output_directory)
+torch.save(model.state_dict(), output_directory + output_file)
 
 #### Evaluate the model
 

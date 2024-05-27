@@ -39,8 +39,8 @@ def clone_dataset(dataset_name, base_dir = "data/", is_openneuro=False):
     print(f"Cloning the dataset {dataset_name}...")       
 
     if is_openneuro:
-        subprocess.run(f"datalad clone https://github.com/OpenNeuroDatasets/{dataset_name}.git", shell=True, cwd=base_dir)
-        subprocess.run(f"datalad siblings -d {os.getcwd()}/{dataset_name} enable -s s3-PRIVATE", shell=True, cwd=base_dir)
+        subprocess.run(f"git clone https://github.com/OpenNeuroDatasets/{dataset_name}.git", shell=True, cwd=base_dir)
+        #subprocess.run(f"git-annex siblings -d {os.getcwd()}/{dataset_name} enable -s s3-PRIVATE", shell=True, cwd=base_dir)
     else:
         subprocess.run(f"git clone git@data.neuro.polymtl.ca:datasets/{dataset_name}.git", shell=True, cwd=base_dir)
         
@@ -49,18 +49,22 @@ def download_sample(img_path, dataset, base_dir = "data/"):
     Download the sample from the dataset with git annex
     '''
     # remove dataset name from the image path
+    folder = os.path.dirname(base_dir + img_path)
     img_path = img_path.split(dataset_from_path(img_path)+"/")[1]
     print(f"Downloading {img_path}...")
     print(f"directory : {dataset}")
-    subprocess.run(f"datalad get {img_path}", shell=True, cwd = base_dir + dataset)
+    if dataset.startswith('ds0'):
+        # aws s3 cp s3://openneuro.org/ds004146/sub-0385/ses-02/anat/sub-0385_ses-02_T2w_TSE_run-02.nii.gz data/ds004146/sub-0385/ses-02/anat/sub-0385_ses-02_T2w_TSE_run-02.nii.gz
+        subprocess.run(f"aws s3 cp s3://openneuro.org/{dataset}/{img_path} {folder}", shell=True)
+    else :
+        subprocess.run(f"git-annex get {img_path}", shell=True, cwd = base_dir + dataset)
 
 def contrast_name_to_label(data_csv):
-    data = pd.read_csv(data_csv)
-    contrast_names = data['contrast'].unique()
+    contrast_names = data_csv['contrast'].unique()
     contrast_labels = {contrast_name : i for i, contrast_name in enumerate(contrast_names)}
     # add labels to the csv file
-    data['label'] = data['contrast'].apply(lambda x : contrast_labels[x])
-    return data
+    data_csv['label'] = data_csv['contrast'].apply(lambda x : contrast_labels[x])
+    return data_csv
 
 
 def dl_dataset(dataset_path_csv, base_dir = "data/"):
@@ -153,16 +157,16 @@ def dataset_splitter(data_csv, train_ratio=0.8, random_seed=42):
     # Get the number of classes
     num_classes = pd_data['label'].nunique()
 
-    # normalize "draw_probability" column so that the sum is 1 in train dataset
-    pd_train_data['draw_probability'] = pd_train_data['draw_probability']/pd_train_data['draw_probability'].sum()
+    # normalize "p_draw" column so that the sum is 1 in train dataset
+    pd_train_data['p_draw'] = pd_train_data['p_draw']/pd_train_data['p_draw'].sum()
 
     # set draw probability to 1/nb_classes in validation dataset
-    pd_val_data['draw_probability'] = 1/num_classes
+    pd_val_data['p_draw'] = 1/num_classes
     
     return pd_train_data, pd_val_data, num_classes
 
 
-def paths_to_Dataset(pd_data, val = False, num_classes=2):
+def paths_to_Dataset(pd_data, val = False, num_classes=2, base_dir="data/"):
     """ Convert the file paths to a custom dataset object."""
     if val:
         transform = Compose(
@@ -180,5 +184,5 @@ def paths_to_Dataset(pd_data, val = False, num_classes=2):
         LoadImage(image_only=True, ensure_channel_first=True),
     ]
 )
-    dataset = Dataset_2D(pd_data["image_path"], pd_data["labels"], transform=transform, num_classes=num_classes)
+    dataset = Dataset_2D(pd_data["img_path"], pd_data["label"], transform=transform, num_classes=num_classes, base_dir=base_dir)
     return dataset
