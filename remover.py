@@ -14,8 +14,10 @@ parser.add_argument('--directory_to_remove', type=str, default=None,
 args = parser.parse_args()
 directory_to_remove = args.directory_to_remove
 
-
 def remove_directory(path):
+    if path is None:
+        print("Please provide a path to the directory to remove.")
+        return
     for root, dirs, files in os.walk(path):
         for file in files:
             os.chmod(os.path.join(root, file), 0o600)  # Give read and write permissions to the current user only
