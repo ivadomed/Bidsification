@@ -1,5 +1,5 @@
 # This script is designed to force remove a directory and all its contents. 
-# It is handy to use if teh downloded dataset refuses to  be removed because of git annex restrictions.
+# It is handy to use if the downloded dataset refuses to  be removed because of git annex restrictions.
 # /!\ Be careful, this script will remove the directory and all its contents permanently.
 
 
@@ -20,9 +20,9 @@ def remove_directory(path):
         return
     for root, dirs, files in os.walk(path):
         for file in files:
-            os.chmod(os.path.join(root, file), 0o600)  # Give read and write permissions to the current user only
+            os.chmod(os.path.join(root, file), 0o750)
         for dir in dirs:
-            os.chmod(os.path.join(root, dir), 0o600)  # Give read and write permissions to the current user only
+            os.chmod(os.path.join(root, dir), 0o750) 
     subprocess.run(f"rm -r {path}", shell=True)
 
 remove_directory(directory_to_remove)
