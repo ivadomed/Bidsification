@@ -6,8 +6,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Download the dataset discribed by the csv file.')
 
 # Add the arguments
-parser.add_argument('--dataset_csv_file', type=str, default='datasetpaths.csv',
-                    help='the path to the dataset CSV file, datasetpaths.csv by Default')
+parser.add_argument('--dataset_csv_file', type=str, default='images_paths.csv',
+                    help='the path to the dataset CSV file, images_paths.csv by Default')
 parser.add_argument('--base_dir', type=str, default='data/',
                     help='the path to the base directory, data/ by Default')
 
