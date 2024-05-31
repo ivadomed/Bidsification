@@ -1,6 +1,6 @@
 # Bidsification
 
-This repo aims at creating a pipeline which could determine de bidnomenclature of a MRI image file from it's content. 
+This repo aims at creating a pipeline which could determine the bidnomenclature of a MRI image file from its content. 
 
 The first part consist in training the required contrast classifier models.
 The goal of this part if to build robust networks that can take 2D 1 channel MRI image of any shape, any view point, any field of view and output it's contrast.
