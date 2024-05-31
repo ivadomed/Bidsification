@@ -9,7 +9,8 @@ The first network, in its dedicated branch, is designed to discriminate T1w agai
 
 ## Dataset selection
 
-This branch is dedicated to download, analyse and select the best suited dataset for training. When Header_downloader.py is executed, it will process the list of datasets provided in datasets_to_process.csv. Clone the datasets and download all the headers before storing their information in a csv. Whenn all datasets are processed, they are all combined in one. The way the script is designed is meant to allow teh user to run it several times in parrallele in order to speed-up the process.
+This branch is dedicated to download, analyse and select the best suited dataset for training. When Header_downloader.py is executed, it will process the list of datasets provided in datasets_to_process.csv. Clone the datasets and download all the headers before storing their information in a csv. When all datasets are processed, they are all combined in one. The way the script is designed is meant to allow the user to run it several times in parrallele in order to speed-up the process.
+
 
 Note that the script uses Amazon Web Services in order to download the headers of the files and thus require to provide an account and a appropriate AWS key
 

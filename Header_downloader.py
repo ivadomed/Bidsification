@@ -1,3 +1,12 @@
+"""
+This scripts uses a csv file with the names of the datasets we want the header information of.
+The datasets can be either from openneuro or from the NeuroPoly lab.
+The finality of the script is to create a csv file containing the header information of all the images in the datasets.
+Note that the script has been designed to be able to be run several times in parralel.
+
+/!\ The script uses the aws command line tool to download the headers of the images. Make you configured a aws account with the command "aws configure"
+"""
+
 from pathlib import Path
 import subprocess
 import os
