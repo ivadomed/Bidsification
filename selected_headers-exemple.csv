@@ -1,0 +1,6 @@
+img_path,contrast,orientation,shape,is_2D,is_3D,is_4D,p,dataset,p_draw
+ds004539/sub-14/ses-001/anat/sub-14_ses-001_UNIT1.nii.gz,UNIT1,LPI,"(240, 320, 320)",False,True,False,"(0.7, 0.7, 0.7)",ds004539,0.111
+ds004611/sub-QDIVYE/ses-1/anat/sub-QDIVYE_ses-1_run-1_UNIT1.nii.gz,UNIT1,LPI,"(300, 320, 44)",False,True,False,"(0.71875, 0.71875, 3.0)",ds004611,0.111
+ds004958/sub-fsm07tz/anat/sub-fsm07tz_acq-mp2rage_UNIT1.nii.gz,UNIT1,LPI,"(176, 240, 256)",False,True,False,"(1.0, 1.0, 1.0)",ds004958,0.111
+ds004958/sub-fsm79bf/anat/sub-fsm79bf_acq-mp2rage_T1map.nii.gz,T1map,LPI,"(176, 240, 256)",False,True,False,"(1.0, 1.0, 1.0)",ds004958,0.333
+sct-testing-large/sub-user0003/anat/sub-user0003_acq-MToff_MTR.nii.gz,MTR,RPI,"(256, 256, 22)",False,True,False,"(0.8984375, 0.8984374403953552, 5.0)",sct-testing-large,0.334

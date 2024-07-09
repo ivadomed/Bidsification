@@ -9,30 +9,27 @@ The first network, in its dedicated branch, is designed to discriminate T1w agai
 
 ## First T1W / T2w classifier (proof of concept)
 
-### Usage
-
-In order to launch the training, one can use this command :
-`python train.py --evaluate True --model_path /path/to/model.pth --model_output path/to/model_out.pth`
-
-In order to launch the testing, one can use this command :
-`python train.py --evaluate True --model_path /path/to/model.pth --model_output path/to/model_out.pth`
-
 ### Dataset
 
-The original training set is extracted from the public dataset [Spine Generic](https://github.com/spine-generic/data-multi-subject).
-This Dataset contains 3D images and require proper prepocessing to be used.
-The spine generic dataset is meant to be stored like data/data-multi-subject/..
+This model is meant to be trained with a dataset selected by the scripts of the branch "Dataset_selection". It provides a "selected_header.csv" file with relevant files names to be found in several dataset from NeuroPoly and [OpenNeuro](https://openneuro.org/). 
+
+### Usage
+
+One first needs to download the dataset described by "selected_header.csv" :
+`python download_dataset.py --dataset_scv_file selected_header.csv`
+
+In order to launch the training, one can use this command :
+`python train.py --evaluate True --dataset_csv_file selected_headers.csv --model_path /path/to/model.pth --model_output path/to/model_out.pth`
 
 ### Preprocessing
 
 The data has been preprocesse to make the network as robust as possible
 
-* The dataset is filtered to keep T1w and T2w images paths only.
 * The dataset is splited between train patients and test patients (20% test)
 * Two object from the class "2D_dataset" are created. They encapsulate the label and the image path.
 * At each training epoch, the model sees each 3D image once. Each time the image is randomly :
     - flipped
-    - rotated (in a 3° range)
+    - rotated (in a 15° range)
     - Shifted (in a 0.1 range)
     - reframed (in a 2D fashion, with minimum size (30 * 30))
 

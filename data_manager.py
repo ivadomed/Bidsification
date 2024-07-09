@@ -39,8 +39,8 @@ def clone_dataset(dataset_name, base_dir = "data/", is_openneuro=False):
     print(f"Cloning the dataset {dataset_name}...")       
 
     if is_openneuro:
-        subprocess.run(f"git clone https://github.com/OpenNeuroDatasets/{dataset_name}.git", shell=True, cwd=base_dir)
-        #subprocess.run(f"git-annex siblings -d {os.getcwd()}/{dataset_name} enable -s s3-PRIVATE", shell=True, cwd=base_dir)
+        subprocess.run(f"datalad clone https://github.com/OpenNeuroDatasets/{dataset_name}.git", shell=True, cwd=base_dir)
+        subprocess.run(f"datalad siblings -d {os.getcwd()}/{dataset_name} enable -s s3-PRIVATE", shell=True, cwd=base_dir)
     else:
         subprocess.run(f"git clone git@data.neuro.polymtl.ca:datasets/{dataset_name}.git", shell=True, cwd=base_dir)
         
@@ -49,22 +49,21 @@ def download_sample(img_path, dataset, base_dir = "data/"):
     Download the sample from the dataset with git annex
     '''
     # remove dataset name from the image path
-    folder = os.path.dirname(base_dir + img_path)
-    img_path = img_path.split(dataset_from_path(img_path)+"/")[1]
+    print(f"img_path : {img_path}")
+    if "/" in img_path:
+        img_path = img_path.split(dataset_from_path(img_path)+"/")[1]
+    else:
+        img_path = img_path.split(dataset_from_path(img_path)+"\\")[1]
     print(f"Downloading {img_path}...")
     print(f"directory : {dataset}")
-    if dataset.startswith('ds0'):
-        # aws s3 cp s3://openneuro.org/ds004146/sub-0385/ses-02/anat/sub-0385_ses-02_T2w_TSE_run-02.nii.gz data/ds004146/sub-0385/ses-02/anat/sub-0385_ses-02_T2w_TSE_run-02.nii.gz
-        subprocess.run(f"aws s3 cp s3://openneuro.org/{dataset}/{img_path} {folder}", shell=True)
-    else :
-        subprocess.run(f"git-annex get {img_path}", shell=True, cwd = base_dir + dataset)
+    subprocess.run(f"datalad get {img_path}", shell=True, cwd = base_dir + dataset)
 
-def contrast_name_to_label(data_csv):
-    contrast_names = data_csv['contrast'].unique()
+def contrast_name_to_label(pd_data):
+    contrast_names = pd_data['contrast'].unique()
     contrast_labels = {contrast_name : i for i, contrast_name in enumerate(contrast_names)}
     # add labels to the csv file
-    data_csv['label'] = data_csv['contrast'].apply(lambda x : contrast_labels[x])
-    return data_csv
+    pd_data['label'] = pd_data['contrast'].apply(lambda x : contrast_labels[x])
+    return pd_data
 
 
 def dl_dataset(dataset_path_csv, base_dir = "data/"):
@@ -95,8 +94,8 @@ def dl_dataset(dataset_path_csv, base_dir = "data/"):
 
 # Define a custom dataset class
 class Dataset_2D(Dataset):
-    def __init__(self, paths, labels, transform=None, num_classes=2, base_dir="data/"):
-        self.data = {"paths" : paths, "labels" : labels}
+    def __init__(self, paths, labels, p_draws=None, transform=None, num_classes=2, base_dir="data/"):
+        self.data = {"paths" : paths, "labels" : labels, "p_draw" : p_draws}
         self.transform = transform
         self.length = len(self.data["paths"])
         self.num_classes = num_classes
@@ -106,6 +105,9 @@ class Dataset_2D(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
+        # draw at random image from the dataset according to the draw probability
+        if self.data["p_draw"] is not None:
+            index = np.random.choice(self.length, p=self.data["p_draw"])
         path = self.base_dir + self.data["paths"][index]
         label = np.zeros(self.num_classes)
         label[self.data["labels"][index]] = 1
@@ -117,7 +119,7 @@ class Dataset_2D(Dataset):
             ## Simulate low or high resolution
             input_shape = image.shape
             # draw a random shape between 0.5 * input_shape and 2 * input_shape
-            target_shape = [int(np.random.uniform(0.5, 2) * s) for s in input_shape]
+            target_shape = [int(np.random.uniform(0.5, 2) * s) for s in input_shape[1:]]
 
             # if one of the target shape dimension is smaller than the input shape dimension, we need to anti-aliasing
             anti_aliasing = False
@@ -125,12 +127,11 @@ class Dataset_2D(Dataset):
                 if target_shape[i] < input_shape[i] :
                     anti_aliasing = True
                     break
-            
             image=Resize(spatial_size=target_shape, mode="trilinear", anti_aliasing=anti_aliasing)(image)
 
             ## Random crop and squeeze to 2D
             dim_to_squeeze = int(np.random.choice([0,1,2]))
-            roi_min = np.array([30, 30, 30])
+            roi_min = np.array([min(30,target_shape[0]), min(30,target_shape[1]), min(30,target_shape[2])])
             roi_max = np.array([-1, -1, -1])
             roi_min[dim_to_squeeze] = 1
             roi_max[dim_to_squeeze] = 1
@@ -143,6 +144,8 @@ class Dataset_2D(Dataset):
 
         # convert label list to tensor with shape [1,num_classes]
         label = torch.tensor([label])
+        print("output shapes")
+        print(image.shape, label.shape)
         return image, label
 
 
@@ -170,19 +173,20 @@ def paths_to_Dataset(pd_data, val = False, num_classes=2, base_dir="data/"):
     """ Convert the file paths to a custom dataset object."""
     if val:
         transform = Compose(
-    [
+        [
         LoadImage(image_only=True, ensure_channel_first=True),
         RandRotate90(prob=0.5),
         RandFlip(prob=0.5),
         RandShiftIntensity(offsets=0.1, prob=0.5),
         RandRotate(range_x=0.3, range_y=0.3, range_z=0.3, prob=0.5),      
-    ]
-)
+        ]
+        )
+        dataset = Dataset_2D(pd_data["img_path"], pd_data["label"], transform=transform, num_classes=num_classes, base_dir=base_dir)
     else:
         transform = Compose(
-    [
+        [
         LoadImage(image_only=True, ensure_channel_first=True),
-    ]
-)
-    dataset = Dataset_2D(pd_data["img_path"], pd_data["label"], transform=transform, num_classes=num_classes, base_dir=base_dir)
+        ]
+        )
+        dataset = Dataset_2D(pd_data["img_path"], pd_data["label"], pd_data['p_draw'], transform=transform, num_classes=num_classes, base_dir=base_dir)
     return dataset
