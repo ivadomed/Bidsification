@@ -7,16 +7,17 @@ The goal of this part if to build robust networks that can take 2D 1 channel MRI
 
 The first network, in its dedicated branch, is designed to discriminate T1w against T2w.
 
-## First T1W / T2w classifier (proof of concept)
+## Multicontrast classifier
 
 ### Dataset
 
-This model is meant to be trained with a dataset selected by the scripts of the branch "Dataset_selection". It provides a "selected_header.csv" file with relevant files names to be found in several dataset from NeuroPoly and [OpenNeuro](https://openneuro.org/). 
+This model is meant to be trained with a dataset selected by the scripts of the branch "Dataset_selection". It provides a "selected_header.csv" file with relevant files names to be found in several datasets from NeuroPoly and [OpenNeuro](https://openneuro.org/). 
 
 ### Usage
 
 One first needs to download the dataset described by "selected_header.csv" :
 `python download_dataset.py --dataset_scv_file selected_header.csv`
+It will clone all the necessary dataset but download only necessary niftis.
 
 In order to launch the training, one can use this command :
 `python train.py --evaluate True --dataset_csv_file selected_headers.csv --model_path /path/to/model.pth --model_output path/to/model_out.pth`
